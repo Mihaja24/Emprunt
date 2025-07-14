@@ -17,7 +17,6 @@ function inscrire_membre($nom, $date_naissance, $genre, $email, $ville, $mdp, $i
     $base = connecterBase();
     $image_path = null;
     if ($image_file && $image_file['error'] == UPLOAD_ERR_OK) {
-        // Utilise la fonction upload, retourne le chemin
         $image_path = upload($image_file);
     }
 
@@ -25,35 +24,36 @@ function inscrire_membre($nom, $date_naissance, $genre, $email, $ville, $mdp, $i
     return mysqli_query($base, $requete);    
 }
 
-// Modifie la fonction upload pour retourner le chemin du fichier uploadé
 function upload($file)
 {
     $uploadDir = dirname(__DIR__, 1) . '/uploads/';
-    // Création du dossier si il n'existe pas
     if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+        if (!mkdir($uploadDir, 0777, true)) {
+            die('Impossible de créer le dossier uploads.');
+        }
     }
     $maxSize = 40 * 1024 * 1024; // 40 Mo
     $allowedMimeTypesImg = ['image/jpeg', 'image/png'];
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        return null;
+        die('Erreur upload : ' . $file['error']);
     }
     if ($file['size'] > $maxSize) {
-        return null;
+        die('Fichier trop volumineux.');
     }
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
     if (!in_array($mime, $allowedMimeTypesImg)) {
-        return null;
+        die('Type de fichier non autorisé : ' . $mime);
     }
     $originalName = pathinfo($file['name'], PATHINFO_FILENAME);
     $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
     $newName = $originalName . '_' . uniqid() . '.' . $extension;
-    if (move_uploaded_file($file['tmp_name'], $uploadDir . $newName)) {
+    $absolutePath = $uploadDir . $newName;
+    if (move_uploaded_file($file['tmp_name'], $absolutePath)) {
         return "uploads/" . $newName;
     } else {
-        return null;
+        die('Erreur lors du déplacement du fichier vers ' . $absolutePath);
     }
 }
 
